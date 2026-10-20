@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enquete: 13 ou 22?</title>
+<style>
+  :root { --bg:#f5f5f2; --fg:#1d1d1b; --red:#d62828; --green:#2a9d4a; --muted:#6b6b66; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#161615; --fg:#f2f2ee; --muted:#9a9a94; } }
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; }
+  body { background:var(--bg); color:var(--fg); font-family:Georgia,"Times New Roman",serif;
+         display:flex; flex-direction:column; align-items:center; padding:24px 16px; }
+  main { width:100%; max-width:520px; }
+  h1 { font-size:1.7rem; line-height:1.2; margin:8px 0 6px; }
+  p.sub { color:var(--muted); margin:0 0 24px; }
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  button.opt { border:0; border-radius:14px; padding:38px 12px; color:#fff; cursor:pointer;
+               font:700 3.4rem/1 Georgia,serif; }
+  button.opt small { display:block; font:500 .95rem sans-serif; margin-top:10px; opacity:.9; }
+  button.opt:focus-visible { outline:4px solid var(--fg); outline-offset:3px; }
+  button.opt:disabled { opacity:.45; cursor:not-allowed; }
+  #v13 { background:var(--red); } #v22 { background:var(--green); }
+  #msg { margin-top:22px; min-height:1.5em; font-family:sans-serif; }
+  .ok { color:var(--green); } .err { color:var(--red); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Em quem você vai votar?</h1>
+  <p class="sub">Escolha uma opção.</p>
+  <div class="opts">
+    <button class="opt" id="v13" data-voto="13">13<small>Vermelho</small></button>
+    <button class="opt" id="v22" data-voto="22">22<small>Verde</small></button>
+  </div>
+  <div id="msg" role="status"></div>
+</main>
+
+<script>
+  // 1) Cole aqui a URL do seu Apps Script (termina com /exec)
+  const URL_PLANILHA = "https://script.google.com/macros/s/AKfycbxJkVBZRi3llm6l4izBbnKjQJ1JA2_60rN2n9JqCoOu2Sz_ugPmZwbdAECwb4UMVI1e/exec";
+
+  const CHAVE = "enquete_1322_votou";
+  const msg = document.getElementById("msg");
+  const botoes = document.querySelectorAll(".opt");
+
+  function bloquear(texto, classe) {
+    botoes.forEach(b => b.disabled = true);
+    msg.textContent = texto; msg.className = classe || "";
+  }
+
+  let jaVotou = false;
+  try { jaVotou = !!localStorage.getItem(CHAVE); } catch (e) {}
+  if (jaVotou) bloquear("Este aparelho já votou. Obrigado!", "ok");
+
+  botoes.forEach(b => b.addEventListener("click", async () => {
+    const voto = b.dataset.voto;
+    botoes.forEach(x => x.disabled = true);
+    msg.textContent = "Enviando..."; msg.className = "";
+    try {
+      // no-cors: o Apps Script não envia cabeçalhos CORS; o voto é gravado mesmo assim
+      await fetch(URL_PLANILHA, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ voto })
+      });
+      try { localStorage.setItem(CHAVE, voto); } catch (e) {}
+      bloquear("Voto registrado. Obrigado!", "ok");
+    } catch (e) {
+      botoes.forEach(x => x.disabled = false);
+      msg.textContent = "Não foi possível enviar. Tente de novo.";
+      msg.className = "err";
+    }
+  }));
+</script>
+</body>
+</html>
