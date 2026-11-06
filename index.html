@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Controle de Manutenção</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f1f5f9;--card:#fff;--text:#0f172a;--soft:#64748b;--border:#e2e8f0;--blue:#1e5fa8;--blue-d:#154a85;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--chip:#eef2f7}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1624;--card:#1a2436;--text:#e5eaf2;--soft:#93a1b8;--border:#2b3850;--blue:#4c92e0;--blue-d:#6aa6ea;--chip:#232f45}}
+:root[data-theme="dark"]{--bg:#0f1624;--card:#1a2436;--text:#e5eaf2;--soft:#93a1b8;--border:#2b3850;--blue:#4c92e0;--blue-d:#6aa6ea;--chip:#232f45}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 Inter,system-ui,Arial,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 14px 40px}
+h1{margin:0 0 4px;font-size:20px}
+.sub{color:var(--soft);margin:0 0 16px;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font-size:22px}.kpi span{font-size:11px;color:var(--soft);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.kpi.w{border-left-color:var(--warn)}.kpi.o{border-left-color:var(--ok)}.kpi.b{border-left-color:var(--bad)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}
+label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--soft)}
+input,select{font:inherit;font-size:14px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 10px;width:100%;outline:none}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(76,146,224,.2)}
+input[type=date]{cursor:pointer;color-scheme:light dark}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{font:inherit;font-weight:700;border-radius:8px;padding:9px 16px;cursor:pointer;border:1px solid var(--border);background:var(--chip);color:var(--text)}
+button.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+button.pri:hover{background:var(--blue-d)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.danger{color:var(--bad);border-color:var(--bad);background:transparent}
+.msg{font-size:12px;color:var(--bad);margin-top:8px;min-height:16px}
+.sync{font-size:12px;color:var(--soft);margin:0 0 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sync.err{color:var(--bad)}
+.sync button{padding:3px 10px;font-size:12px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--soft);padding:6px 8px;border-bottom:2px solid var(--border)}
+td{padding:9px 8px;border-bottom:1px solid var(--border)}
+td.pl{font-weight:800;letter-spacing:.5px}
+td.dias{font-weight:800}
+td.dias small{display:block;font-weight:500;font-size:11px;color:var(--soft)}
+td.act{white-space:nowrap}
+.st{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:800;color:#fff}
+.st.m{background:var(--warn)}.st.a{background:var(--blue)}.st.c{background:var(--ok)}.st.x{background:var(--soft)}
+.del,.ed{padding:3px 9px;font-size:12px}
+.del{color:var(--bad)}
+.ed{color:var(--blue)}
+.fimEd{padding:5px 8px;font-size:13px;min-width:130px;border-color:var(--warn)}
+.empty{text-align:center;color:var(--soft);padding:22px}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.hd h2{margin:0;font-size:14px;text-transform:uppercase;letter-spacing:.4px}
+dialog{border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text);padding:18px;width:min(440px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog h3{margin:0 0 12px;font-size:16px}
+dialog .col{display:grid;gap:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔧 Controle de Manutenção</h1>
+  <p class="sub">Registre as manutenções da frota e use os mesmos campos para filtrar a lista.</p>
+
+  <div class="sync" id="sync"></div>
+
+  <div class="kpis">
+    <div class="kpi"><span>Registros</span><b id="kTot">0</b></div>
+    <div class="kpi w"><span>Em manutenção</span><b id="kMan">0</b></div>
+    <div class="kpi o"><span>Concluídas</span><b id="kCon">0</b></div>
+  </div>
+
+  <div class="card">
+    <div class="fields">
+      <label>Placa
+        <select id="fPlaca"><option value="">Todas</option></select>
+      </label>
+      <label>Motivo
+        <input id="fMotivo" type="text" placeholder="Ex.: troca de óleo" maxlength="120">
+      </label>
+      <label>Início
+        <input id="fIni" type="date">
+      </label>
+      <label>Fim
+        <input id="fFim" type="date">
+      </label>
+    </div>
+    <div class="btns">
+      <button class="pri" id="bAdd">+ Registrar manutenção</button>
+      <button id="bClr">Limpar filtros</button>
+      <button class="danger" id="bClrAll">🗑 Limpar todos os registros</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><h2>Manutenções</h2><span class="sub" style="margin:0" id="cnt"></span></div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Placa</th><th>Motivo</th><th>Início</th><th>Fim</th><th>Status</th><th>Dias</th><th></th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <h3>Editar manutenção</h3>
+  <div class="col">
+    <label>Placa <select id="ePlaca"></select></label>
+    <label>Motivo <input id="eMotivo" type="text" maxlength="120"></label>
+    <label>Início <input id="eIni" type="date"></label>
+    <label>Fim (opcional) <input id="eFim" type="date"></label>
+  </div>
+  <div class="msg" id="eMsg"></div>
+  <div class="btns">
+    <button class="pri" id="eSave">Salvar alterações</button>
+    <button id="eCancel">Cancelar</button>
+  </div>
+</dialog>
+
+<script>
+/* ============ CONFIGURAÇÃO ============
+   Cole aqui a URL do Web App do Google Apps Script (termina em /exec).
+   Veja o passo a passo no arquivo apps-script.gs.
+   Enquanto estiver vazio, os dados ficam apenas neste navegador. */
+const API_URL="https://script.google.com/macros/s/AKfycbxDwGRw3Eg4kff3sOWHqZZchSCnL_8E1LBmmbSWMQsGZTqYLsO6iWbg8W-g0mMfFtit/exec";
+const REFRESH_MS=30000;
+/* ====================================== */
+
+const PLACAS=["BCP1677","BCP1G80","BDK0J96","BDK1A24","BDK1A32","DQX0F56","EEU9G69","JAS5J16","JAV8G01","JAZ9I74","TBJ7E65","TBJ7E66","UBF4F50","UBX9A51","UBX9B22","BAF0644","UCM7J68","UCM7J71"].sort();
+const KEY="manutencao_registros_v1";
+let dados=[];
+try{dados=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){dados=[]}
+const $=id=>document.getElementById(id);
+const cache=()=>{try{localStorage.setItem(KEY,JSON.stringify(dados))}catch(e){}};
+const hoje=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const hora=()=>new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+const br=d=>d?d.split("-").reverse().join("/"):"—";
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const opts=PLACAS.map(p=>`<option>${p}</option>`).join("");
+$("fPlaca").innerHTML+=opts;
+$("ePlaca").innerHTML=opts;
+
+// ---------- sincronização com a planilha ----------
+let pend=0;
+function setSync(txt,err){
+  const el=$("sync");el.className="sync"+(err?" err":"");
+  el.innerHTML=esc(txt)+(API_URL?' <button id="bRef">↻ Atualizar</button>':"");
+  const b=$("bRef");if(b)b.onclick=carregar;
+}
+async function api(payload){
+  const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+  const j=await r.json();
+  if(!j.ok)throw new Error(j.error||"erro desconhecido");
+  return j;
+}
+async function carregar(){
+  if(!API_URL||pend>0)return;
+  setSync("Sincronizando com a planilha…");
+  try{
+    const r=await fetch(API_URL+(API_URL.includes("?")?"&":"?")+"t="+Date.now());
+    const j=await r.json();
+    if(!j.ok)throw new Error(j.error||"erro");
+    dados=j.data;cache();render();
+    setSync("Planilha Google conectada · atualizado às "+hora());
+  }catch(e){
+    setSync("Sem conexão com a planilha — exibindo últimos dados salvos ("+e.message+")",true);
+  }
+}
+// aplica a mudança na tela na hora e envia para a planilha em seguida
+async function gravar(payload,aplicar){
+  aplicar();cache();render();
+  if(!API_URL)return;
+  pend++;setSync("Salvando na planilha…");
+  try{
+    await api(payload);
+    pend--;setSync("Salvo na planilha às "+hora());
+  }catch(e){
+    pend--;setSync("Falha ao salvar na planilha: "+e.message+". Recarregando…",true);
+    setTimeout(carregar,1500);
+  }
+}
+
+// ---------- calendário ----------
+const abrirCal=el=>{try{el.showPicker()}catch(e){}};
+["fIni","fFim","eIni","eFim"].forEach(id=>{
+  const el=$(id);
+  el.addEventListener("click",()=>abrirCal(el));
+  el.addEventListener("focus",()=>abrirCal(el));
+});
+
+// ---------- regras ----------
+function status(r){
+  if(r.fim)return["Concluída","c"];
+  if(r.ini>hoje())return["Agendada","a"];
+  return["Em manutenção","m"];
+}
+const utc=s=>{const[a,m,d]=s.split("-").map(Number);return Date.UTC(a,m-1,d)};
+function dias(r){
+  if(r.fim)return{n:Math.round((utc(r.fim)-utc(r.ini))/86400000)+1,andamento:false};
+  const h=hoje();
+  if(r.ini>h)return{n:null,andamento:false};
+  return{n:Math.round((utc(h)-utc(r.ini))/86400000)+1,andamento:true};
+}
+function filtrados(){
+  const p=$("fPlaca").value,m=$("fMotivo").value.trim().toLowerCase(),i=$("fIni").value,f=$("fFim").value;
+  return dados.filter(r=>{
+    if(p&&r.placa!==p)return false;
+    if(m&&!r.motivo.toLowerCase().includes(m))return false;
+    const rf=r.fim||"9999-12-31";
+    if(i&&rf<i)return false;
+    if(f&&r.ini>f)return false;
+    return true;
+  }).sort((a,b)=>b.ini.localeCompare(a.ini));
+}
+
+function render(){
+  const l=filtrados();
+  $("tb").innerHTML=l.length?l.map(r=>{
+    const[s,c]=status(r);
+    const d=dias(r);
+    const fimCel=r.fim?br(r.fim):`<input type="date" class="fimEd" data-id="${esc(r.id)}" min="${esc(r.ini)}" title="Informe a data de fim">`;
+    const diasCel=d.n===null?"—":`${d.n}${d.andamento?"<small>em andamento</small>":""}`;
+    return `<tr><td class="pl">${esc(r.placa)}</td><td>${esc(r.motivo)}</td><td>${br(r.ini)}</td><td>${fimCel}</td><td><span class="st ${c}">${s}</span></td><td class="dias">${diasCel}</td><td class="act"><button class="ed" data-id="${esc(r.id)}">Editar</button> <button class="del" data-id="${esc(r.id)}">Excluir</button></td></tr>`;
+  }).join(""):`<tr><td colspan="7" class="empty">Nenhuma manutenção encontrada.</td></tr>`;
+  $("cnt").textContent=l.length+" de "+dados.length+" registro(s)";
+  const cont=k=>dados.filter(r=>status(r)[1]===k).length;
+  $("kTot").textContent=dados.length;$("kMan").textContent=cont("m");
+  $("kCon").textContent=cont("c");
+  $("bClrAll").disabled=!dados.length;
+}
+
+// ---------- registrar ----------
+$("bAdd").onclick=()=>{
+  const placa=$("fPlaca").value,motivo=$("fMotivo").value.trim(),ini=$("fIni").value,fim=$("fFim").value;
+  const msg=$("msg");
+  if(!placa||!motivo||!ini){msg.textContent="Para registrar, informe Placa, Motivo e Início (Fim pode ser informado depois, direto na lista).";return}
+  if(fim&&fim<ini){msg.textContent="A data de Fim não pode ser anterior ao Início.";return}
+  msg.textContent="";
+  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),placa,motivo,ini,fim};
+  gravar({action:"add",record:rec},()=>dados.push(rec));
+  $("fMotivo").value="";$("fIni").value="";$("fFim").value="";
+  render();
+};
+$("bClr").onclick=()=>{["fPlaca","fMotivo","fIni","fFim"].forEach(id=>$(id).value="");$("msg").textContent="";render()};
+["fPlaca","fMotivo","fIni","fFim"].forEach(id=>{$(id).addEventListener("input",render);$(id).addEventListener("change",render)});
+
+// ---------- limpar tudo ----------
+$("bClrAll").onclick=()=>{
+  if(!dados.length)return;
+  const aviso=API_URL?" Isso também apaga os dados da planilha Google para todos os usuários.":"";
+  if(!confirm("Excluir TODOS os "+dados.length+" registros?"+aviso+" Esta ação não pode ser desfeita."))return;
+  gravar({action:"clear"},()=>{dados=[]});
+};
+
+// ---------- editar ----------
+let editId=null;
+function abrirEdicao(id){
+  const r=dados.find(x=>x.id===id);if(!r)return;
+  editId=id;
+  $("ePlaca").value=r.placa;$("eMotivo").value=r.motivo;$("eIni").value=r.ini;$("eFim").value=r.fim||"";
+  $("eMsg").textContent="";
+  $("dlg").showModal();
+}
+$("eCancel").onclick=()=>$("dlg").close();
+$("eSave").onclick=()=>{
+  const placa=$("ePlaca").value,motivo=$("eMotivo").value.trim(),ini=$("eIni").value,fim=$("eFim").value;
+  if(!placa||!motivo||!ini){$("eMsg").textContent="Placa, Motivo e Início são obrigatórios.";return}
+  if(fim&&fim<ini){$("eMsg").textContent="A data de Fim não pode ser anterior ao Início.";return}
+  const r=dados.find(x=>x.id===editId);if(!r){$("dlg").close();return}
+  const novo={id:r.id,placa,motivo,ini,fim};
+  gravar({action:"update",record:novo},()=>Object.assign(r,novo));
+  $("dlg").close();
+};
+
+// ---------- ações na tabela ----------
+$("tb").addEventListener("click",e=>{
+  const fe=e.target.closest(".fimEd");
+  if(fe){abrirCal(fe);return}
+  const be=e.target.closest(".ed");
+  if(be){abrirEdicao(be.dataset.id);return}
+  const b=e.target.closest(".del");if(!b)return;
+  if(!confirm("Excluir este registro?"))return;
+  const id=b.dataset.id;
+  gravar({action:"delete",id},()=>{dados=dados.filter(r=>r.id!==id)});
+});
+$("tb").addEventListener("change",e=>{
+  const ed=e.target.closest(".fimEd");if(!ed)return;
+  const r=dados.find(x=>x.id===ed.dataset.id);if(!r)return;
+  const v=ed.value;
+  if(!v)return;
+  if(v<r.ini){
+    $("msg").textContent="A data de Fim não pode ser anterior ao Início ("+br(r.ini)+").";
+    ed.value="";return;
+  }
+  $("msg").textContent="";
+  const novo={id:r.id,placa:r.placa,motivo:r.motivo,ini:r.ini,fim:v};
+  gravar({action:"update",record:novo},()=>{r.fim=v});
+});
+
+// ---------- início ----------
+render();
+if(API_URL){
+  setSync("Conectando à planilha…");
+  carregar();
+  setInterval(()=>{if(!$("dlg").open&&!document.hidden)carregar()},REFRESH_MS);
+}else{
+  setSync("Modo local: os dados ficam só neste navegador. Configure API_URL para salvar na planilha Google.",true);
+}
+</script>
+</body>
+</html>
