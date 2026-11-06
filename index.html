@@ -125,11 +125,11 @@ dialog .col{display:grid;gap:10px}
    Cole aqui a URL do Web App do Google Apps Script (termina em /exec).
    Veja o passo a passo no arquivo apps-script.gs.
    Enquanto estiver vazio, os dados ficam apenas neste navegador. */
-const API_URL='https://script.google.com/macros/s/AKfycbxDwGRw3Eg4kff3sOWHqZZchSCnL_8E1LBmmbSWMQsGZTqYLsO6iWbg8W-g0mMfFtit/exec';
+const API_URL="";
 const REFRESH_MS=30000;
 /* ====================================== */
 
-const PLACAS=["BCP1677","BCP1G80","BDK0J96","BDK1A24","BDK1A32","DQX0F56","EEU9G69","JAS5J16","JAV8G01","JAZ9I74","TBJ7E65","TBJ7E66","UBF4F50","UBX9A51","UBX9B22","BAF0644","UCM7J68","UCM7J71"].sort();
+const PLACAS=["ACT7A01","ACT7A03","ACT7A05","ALT6294","ALU4689","ALX6850","AMQ9731","AMQ9732","AMX3710","ANF3057","ANF5853","ANQ3209","ANY4318","AOE3H93","AQC1I11","AQJ6120","AQR5207","AQR5279","AQS8H97","AQU1B09","AQW9J47","ARU6773","ARU6774","ARU6775","ARU6776","ARZ0455","ARZ0458","ARZ0461","ARZ0465","ARZ0467","ARZ0469","ARZ0471","ASP2091","ASP2113","ASP2116","ASP2118","ASP2129","ASP2132","ASP2133","ASP2136","ASP2137","ASP2139","ASP2146","ASP2B38","ASP3757","ASP3758","ASP3759","ATO8923","ATO8928","ATO8978","ATO8979","ATO8983","ATO8985","ATO8988","ATO8992","AUJ0908","AUJ0914","AUJ0915","AUJ0917","AUJ0919","AWL8C80","AXO9611","AXO9613","AXO9616","AXO9618","AXO9621","AXO9625","AXO9629","AXO9651","AXO9653","AXP3510","BAF0644","BBQ0491","BBQ0492","BBQ0493","BBQ0494","BBQ0496","BBQ0497","BBQ0498","BBQ0513","BBQ0516","BBQ0521","BCP1677","BCP1G80","BDK0J96","BDK1A24","BDK1A32","BEQ1B47","BEQ1B48","BEQ1B52","BEQ1B53","BEQ1B54","BEQ1B57","BEQ1B58","BEQ1B59","BEQ1B60","BEQ1B61","CYN3C28","DQX0F56","DVT1977","DVT2040","DVT2217","DVT2C15","EEU9G69","IQA3A06","JAS5J16","JAV8G01","JAZ9I74","JJZ2361","JMH6591","JSJ5D86","MCP1205","MCP4644","MDN3239","MFK1399","MFP5636","MFR0976","MGB5G24","MGU4B19","MGU9J65","MHC9C91","MHD0092","MHE2H34","MHL0E39","MHM4B79","MHS4512","MHX8G44","MIS2D67","TBJ7E65","TBJ7E66","UBF4F50","UBK6E30","UBK6E32","UBX9A51","UBX9B22","UCM7J68","UCM7J71"].sort();
 const KEY="manutencao_registros_v1";
 let dados=[];
 try{dados=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){dados=[]}
@@ -138,6 +138,17 @@ const cache=()=>{try{localStorage.setItem(KEY,JSON.stringify(dados))}catch(e){}}
 const hoje=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const hora=()=>new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
 const br=d=>d?d.split("-").reverse().join("/"):"—";
+// normaliza qualquer formato de data vindo da planilha para AAAA-MM-DD
+const nd=v=>{
+  const s=String(v==null?"":v).trim();
+  if(!s)return"";
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(m)return m[3]+"-"+m[2]+"-"+m[1];
+  const d=new Date(s.replace(/\(.*\)/,"").trim());
+  if(isNaN(d))return"";
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 const opts=PLACAS.map(p=>`<option>${p}</option>`).join("");
@@ -164,7 +175,7 @@ async function carregar(){
     const r=await fetch(API_URL+(API_URL.includes("?")?"&":"?")+"t="+Date.now());
     const j=await r.json();
     if(!j.ok)throw new Error(j.error||"erro");
-    dados=j.data;cache();render();
+    dados=j.data.map(r=>({...r,ini:nd(r.ini),fim:nd(r.fim)}));cache();render();
     setSync("Planilha Google conectada · atualizado às "+hora());
   }catch(e){
     setSync("Sem conexão com a planilha — exibindo últimos dados salvos ("+e.message+")",true);
